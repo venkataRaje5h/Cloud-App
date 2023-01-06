@@ -129,12 +129,12 @@ class CloudController:
             if user.user_password == password:
                 auth_token, expiry_time = self.auth_obj.generate_token(email)
                 output = {
-                    "status": "success",
-                    "code": "SUCCESS",
+                    "status"  : "success",
+                    "code"    : "SUCCESS",
                     "response": {
-                        "user_name": user.user_name,
-                        "user_mail": email,
-                        "auth_token": auth_token,
+                        "user_name"  : user.user_name,
+                        "user_mail"  : email,
+                        "auth_token" : auth_token,
                         "expiry_time": expiry_time
                     }
                 }
@@ -188,9 +188,10 @@ class CloudController:
                 return authorizing_failed()
             elif db_output == -2:
                 return folder_already_exist()
+            cherrypy.response.status = 201
             return {
-                "status": "success",
-                "code": "SUCCESS",
+                "status"  : "success",
+                "code"    : "SUCCESS",
                 "response": {
                     "folder_name": folder_name
                 }
@@ -221,10 +222,10 @@ class CloudController:
             if output == -1:
                 return authorizing_failed()
             return {
-                "status": "success",
-                "code": "SUCCESS",
+                "status" : "success",
+                "code"   : "SUCCESS",
                 "message": {
-                    "folders_list": output
+                    "folders_list": [folder for folder in output]
                 }
             }
         except:
@@ -235,7 +236,6 @@ class CloudController:
         if authKey is None or folder_name is None or new_folder_name is None:
             return bad_request()
         try:
-            print(1)
             db_output = self.folder_obj.update_folder(authKey=authKey, old_folder_name=folder_name,
                                                       new_folder_name=new_folder_name)
             if db_output == -1:
@@ -266,8 +266,8 @@ class CloudController:
                 }
             cherrypy.response.status = 200
             return {
-                "status": "success",
-                "code": "SUCCESS",
+                "status"  : "success",
+                "code"    : "SUCCESS",
                 "response": {
                     "image_name": image.filename,
                     "image_size": output
@@ -277,21 +277,22 @@ class CloudController:
             return internal_server_error()
 
     @cherrypy.tools.json_out()
-    def get_images(self, authKey, folder_name):
+    def get_images(self, authKey, folder_name, image_name):
         if authKey is None or folder_name is None:
             return bad_request()
         try:
-            output = self.image_obj.get_images_in_folder(authKey, folder_name)
+            output = self.image_obj.get_images(authKey, folder_name, image_name)
+            image = open(output, 'rb')
             if output == -1:
                 return authorizing_failed()
             elif output == -2:
                 return folder_does_not_exist()
             cherrypy.response.status = 200
             return {
-                "status": "success",
-                "code": "SUCCESS",
+                "status"  : "success",
+                "code"    : "SUCCESS",
                 "response": {
-                    "images_list": output
+                    "images": str(image.read())
                 }
             }
         except:
@@ -320,7 +321,7 @@ class CloudController:
 
     @cherrypy.tools.json_out()
     def change_location(self, image_name, authKey, folder_name, another_folder_name):
-        if authKey is None or folder_name is None or image_name is None:
+        if authKey is None or folder_name is None or image_name is None or another_folder_name is None:
             return bad_request()
         try:
             output = self.image_obj.move_image_another_folder(image_name, authKey, folder_name, another_folder_name)
@@ -358,8 +359,8 @@ class CloudController:
                 return folder_does_not_exist()
             cherrypy.response.status = 200
             return {
-                "status": "success",
-                "code": "SUCCESS",
+                "status"  : "success",
+                "code"    : "SUCCESS",
                 "response": {
                     "image_count": output[1],
                     "folder_size": output[0]
@@ -432,14 +433,16 @@ if __name__ == "__main__":
                        route='/',
                        action='index',
                        controller=CloudController(),
-                       conditions={'method': ['GET']})
+                       # conditions={'method': ['GET']}
+                       )
 
     # signup user
     dispatcher.connect(name='',
                        route='/cloud/users/sign_up',
                        action='user_sign_up',
                        controller=CloudController(),
-                       conditions={'method': ['POST']})
+                       # conditions={'method': ['POST']}
+                       )
     # login
     dispatcher.connect(name='',
                        route='/cloud/users/login',
@@ -494,7 +497,7 @@ if __name__ == "__main__":
                        conditions={'method': ['POST']})
     # get image
     dispatcher.connect(name='',
-                       route='/cloud/application/folders/{folder_name}/images',
+                       route='/cloud/application/folders/{folder_name}/images/{image_name}',
                        action='get_images',
                        controller=CloudController(),
                        conditions={'method': ['GET']})
@@ -514,7 +517,7 @@ if __name__ == "__main__":
 
     # metrics_folder
     dispatcher.connect(name='',
-                       route='/cloud/application/{folder_name}/metrics',
+                       route='/cloud/application/folders/{folder_name}/metrics',
                        action='folder_metrics_operations',
                        controller=CloudController(),
                        conditions={'method': ['GET']})

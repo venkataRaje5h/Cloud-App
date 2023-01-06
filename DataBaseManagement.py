@@ -3,13 +3,11 @@ from model.model_classes import User
 import random
 import string
 import time
-import logging
 import os
 import shutil
 from PIL import Image
 import io
 
-logging.basicConfig()
 
 server_path = "/Users/venkat-16321/Desktop/Cloud"
 
@@ -41,16 +39,17 @@ class UserManagement:
         try:
             self.my_cursor.execute(query, value)
             self.conn.commit()
-        except:
+        except Exception as e:
+            # print(e)
             return -1
-        # self.my_cursor.close()
-        # self.conn.close()
         if self.my_cursor.rowcount > 0:
             try:
                 path = os.path.join(server_path, user_email)
                 os.makedirs(path)
-            except Exception:
-                return -2
+            except Exception as e:
+                pass
+                # print(e)
+                # return -2
         return self.my_cursor.rowcount
 
     def get_User(self, email):
@@ -63,8 +62,6 @@ class UserManagement:
                         used_memory=result[0][5], country=result[0][3], image_count=result[0][7])
         except Exception:
             return None
-        # self.my_cursor.close()
-        # self.conn.close()
         return user
 
     def update_user(self, email, password, user_name, phone_num):
@@ -72,8 +69,6 @@ class UserManagement:
         values = (phone_num, user_name, password, email)
         self.my_cursor.execute(query, values)
         self.conn.commit()
-        # self.my_cursor.close()
-        # self.conn.close()
         return self.my_cursor.rowcount
 
     def delete_user(self, email, password):
@@ -81,8 +76,6 @@ class UserManagement:
         value = (email, password)
         self.my_cursor.execute(query, value)
         self.conn.commit()
-        # self.my_cursor.close()
-        # self.conn.close()
         if self.my_cursor.rowcount > 0:
             path = os.path.join(server_path, email)
             if os.path.exists(path):
@@ -115,8 +108,6 @@ class AuthManagament:
         value = (email, token, curr_time,)
         self.my_cursor.execute(query, value)
         self.conn.commit()
-        # self.my_cursor.close()
-        # self.conn.close()
 
     def get_tokens(self):
         query = "SELECT auth_token FROM auth_key"
@@ -124,8 +115,6 @@ class AuthManagament:
         result = []
         for token in self.my_cursor.fetchall():
             result.append(token[0])
-        # self.my_cursor.close()
-        # self.conn.close()
         return result
 
     def generate_token(self, email):
@@ -225,7 +214,6 @@ class ImageManagement:
         self.auth_obj = AuthManagament()
 
     def insert_image(self, image, folder_name, image_name, authKey):
-        print(1)
         folder_name = checking_name(folder_name)
         image_name = checking_name(image_name)
         fetching_email = self.auth_obj.get_user_email_from_authkey(authKey)
@@ -236,36 +224,53 @@ class ImageManagement:
         if os.path.exists(folder_path):
             os.chdir(folder_path)
             bytearr = bytearray(image.file.read())
-            picture = Image.open(io.BytesIO(bytearr))
+            photo = Image.open(io.BytesIO(bytearr))
             image_size = len(bytearr)
             if not os.path.exists(image_name):
                 checking_space = self.user_obj.updating_user_memory(image_size, fetching_email, 1)
             else:
                 checking_space = 1
             if checking_space > 0:
-                picture.save(image_name)
+                photo.save(image_name)
                 return image_size
             else:
                 return -3
         else:
             return -2
 
-    def get_images_in_folder(self, authKey, folder_name):
+    # def get_images_in_folder(self, authKey, folder_name):
+    #     folder_name = checking_name(folder_name)
+    #     email_check = self.auth_obj.get_user_email_from_authkey(authKey)
+    #     if email_check is None:
+    #         return -1  # authentication failure
+    #     user_path = os.path.join(server_path, email_check)
+    #     folder_path = os.path.join(user_path, folder_name)
+    #     if os.path.exists(folder_path):
+    #         user_folders = os.listdir(folder_path)
+    #     else:
+    #         return -2
+    #     try:
+    #         user_folders.remove(".DS_Store")
+    #     except:
+    #         pass
+    #     return user_folders
+
+    def get_images(self, authKey, folder_name, image_name):
         folder_name = checking_name(folder_name)
         email_check = self.auth_obj.get_user_email_from_authkey(authKey)
         if email_check is None:
             return -1  # authentication failure
         user_path = os.path.join(server_path, email_check)
         folder_path = os.path.join(user_path, folder_name)
+        image_path = os.path.join(folder_path, image_name)
         if os.path.exists(folder_path):
-            user_folders = os.listdir(folder_path)
+            if os.path.exists(image_path):
+                image = open(image_path, 'rb')
+                # bytearr = bytearray(image.read())
+                # photo = Image.open(io.BytesIO(bytearr))
+                return image_path
         else:
             return -2
-        try:
-            user_folders.remove(".DS_Store")
-        except:
-            pass
-        return user_folders
 
     def delete_images_in_folder(self, authKey, folder_name, image_name):
         folder_name = checking_name(folder_name)
