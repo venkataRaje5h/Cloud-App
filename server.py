@@ -1,7 +1,11 @@
 import cherrypy
 import json
-from model.DataBaseManagement import UserManagement, FolderManagement, MetricsManagement, ImageManagement, \
-    AuthManagament
+
+from model.Authentication import AuthManagament
+from model.Folder import FolderManagement
+from model.Image import ImageManagement
+from model.Metrices import MetricsManagement
+from model.User import UserManagement
 
 
 def bad_request():
@@ -99,7 +103,7 @@ class CloudController:
 
     @cherrypy.tools.json_out()
     def user_sign_up(self, user_name=None, phone_number=None, email=None, country=None, password=None):
-        if user_name is None or phone_number is None or email is None or country is None or password is None or cherrypy.request.method != 'POST':
+        if None in (user_name, phone_number, email, country, password) or cherrypy.request.method != 'POST':
             return bad_request()
         try:
             result = self.user_obj.insert_user(user_name=user_name, phone_number=phone_number, user_email=email,
@@ -120,7 +124,7 @@ class CloudController:
 
     @cherrypy.tools.json_out()
     def user_login(self, email, password):
-        if email is None or password is None or cherrypy.request.method != 'POST':
+        if None in (email, password) or cherrypy.request.method != 'POST':
             return bad_request()
         try:
             user = self.user_obj.get_User(email)
@@ -129,12 +133,12 @@ class CloudController:
             if user.user_password == password:
                 auth_token, expiry_time = self.auth_obj.generate_token(email)
                 output = {
-                    "status"  : "success",
-                    "code"    : "SUCCESS",
+                    "status": "success",
+                    "code": "SUCCESS",
                     "response": {
-                        "user_name"  : user.user_name,
-                        "user_mail"  : email,
-                        "auth_token" : auth_token,
+                        "user_name": user.user_name,
+                        "user_mail": email,
+                        "auth_token": auth_token,
                         "expiry_time": expiry_time
                     }
                 }
@@ -147,7 +151,7 @@ class CloudController:
 
     @cherrypy.tools.json_out()
     def user_delete(self, email, password):
-        if email is None or password is None or cherrypy.request.method != 'DELETE':
+        if None in (email, password) or cherrypy.request.method != 'DELETE':
             return bad_request()
         try:
             user = self.user_obj.get_User(email)
@@ -163,7 +167,7 @@ class CloudController:
 
     @cherrypy.tools.json_out()
     def user_update(self, email, password, user_name, phone_number):
-        if user_name is None or phone_number is None or email is None or password is None or cherrypy.request.method != 'PUT':
+        if None in (user_name, phone_number, email, password) or cherrypy.request.method != 'PUT':
             return bad_request()
         try:
             user = self.user_obj.get_User(email)
@@ -180,7 +184,7 @@ class CloudController:
     # folder
     @cherrypy.tools.json_out()
     def create_folder(self, authKey=None, folder_name=None):
-        if authKey is None or folder_name is None:
+        if None in (authKey, folder_name):
             return bad_request()
         try:
             db_output = self.folder_obj.insert_folder(auth_key=authKey, folder_name=folder_name)
@@ -190,8 +194,8 @@ class CloudController:
                 return folder_already_exist()
             cherrypy.response.status = 201
             return {
-                "status"  : "success",
-                "code"    : "SUCCESS",
+                "status": "success",
+                "code": "SUCCESS",
                 "response": {
                     "folder_name": folder_name
                 }
@@ -201,7 +205,7 @@ class CloudController:
 
     @cherrypy.tools.json_out()
     def delete_folder(self, authKey=None, folder_name=None):
-        if authKey is None or folder_name is None:
+        if None in (authKey, folder_name):
             return bad_request()
         try:
             db_output = self.folder_obj.delete_folder(auth_key=authKey, folder_name=folder_name)
@@ -222,8 +226,8 @@ class CloudController:
             if output == -1:
                 return authorizing_failed()
             return {
-                "status" : "success",
-                "code"   : "SUCCESS",
+                "status": "success",
+                "code": "SUCCESS",
                 "message": {
                     "folders_list": [folder for folder in output]
                 }
@@ -233,7 +237,7 @@ class CloudController:
 
     @cherrypy.tools.json_out()
     def update_folder(self, authKey=None, folder_name=None, new_folder_name=None):
-        if authKey is None or folder_name is None or new_folder_name is None:
+        if None in (authKey, folder_name, new_folder_name):
             return bad_request()
         try:
             db_output = self.folder_obj.update_folder(authKey=authKey, old_folder_name=folder_name,
@@ -250,7 +254,7 @@ class CloudController:
 
     @cherrypy.tools.json_out()
     def insert_image(self, image=None, authKey=None, folder_name=None):
-        if image is None or authKey is None or folder_name is None:
+        if None in (image, authKey, folder_name):
             return bad_request()
         try:
             output = self.image_obj.insert_image(image, folder_name, image.filename, authKey)
@@ -266,8 +270,8 @@ class CloudController:
                 }
             cherrypy.response.status = 200
             return {
-                "status"  : "success",
-                "code"    : "SUCCESS",
+                "status": "success",
+                "code": "SUCCESS",
                 "response": {
                     "image_name": image.filename,
                     "image_size": output
@@ -278,7 +282,7 @@ class CloudController:
 
     @cherrypy.tools.json_out()
     def get_images(self, authKey, folder_name, image_name):
-        if authKey is None or folder_name is None:
+        if None in (authKey, folder_name):
             return bad_request()
         try:
             output = self.image_obj.get_images(authKey, folder_name, image_name)
@@ -289,8 +293,8 @@ class CloudController:
                 return folder_does_not_exist()
             cherrypy.response.status = 200
             return {
-                "status"  : "success",
-                "code"    : "SUCCESS",
+                "status": "success",
+                "code": "SUCCESS",
                 "response": {
                     "images": str(image.read())
                 }
@@ -300,7 +304,7 @@ class CloudController:
 
     @cherrypy.tools.json_out()
     def delete_image(self, authKey, folder_name, image_name):
-        if authKey is None or folder_name is None or image_name is None:
+        if None in (image_name, authKey, folder_name):
             return bad_request()
         try:
             output = self.image_obj.delete_images_in_folder(authKey, folder_name, image_name)
@@ -321,7 +325,7 @@ class CloudController:
 
     @cherrypy.tools.json_out()
     def change_location(self, image_name, authKey, folder_name, another_folder_name):
-        if authKey is None or folder_name is None or image_name is None or another_folder_name is None:
+        if None in (authKey, folder_name, image_name, another_folder_name):
             return bad_request()
         try:
             output = self.image_obj.move_image_another_folder(image_name, authKey, folder_name, another_folder_name)
@@ -349,7 +353,7 @@ class CloudController:
 
     @cherrypy.tools.json_out()
     def folder_metrics_operations(self, authKey, folder_name):
-        if authKey is None or folder_name is None:
+        if None in (authKey, folder_name):
             return bad_request()
         try:
             output = self.metrics_obj.folder_metrics(authKey, folder_name)
@@ -359,8 +363,8 @@ class CloudController:
                 return folder_does_not_exist()
             cherrypy.response.status = 200
             return {
-                "status"  : "success",
-                "code"    : "SUCCESS",
+                "status": "success",
+                "code": "SUCCESS",
                 "response": {
                     "image_count": output[1],
                     "folder_size": output[0]
@@ -448,20 +452,23 @@ if __name__ == "__main__":
                        route='/cloud/users/login',
                        action='user_login',
                        controller=CloudController(),
-                       conditions={'method': ['POST']})
+                       # conditions={'method': ['POST']}
+                       )
 
     # delete user
     dispatcher.connect(name='',
                        route='/cloud/users/delete',
                        action='user_delete',
                        controller=CloudController(),
-                       conditions={'method': ['DELETE']})
+                       # conditions={'method': ['DELETE']}
+                       )
     # update user
     dispatcher.connect(name='',
                        route='/cloud/users/update',
                        action='user_update',
                        controller=CloudController(),
-                       conditions={'method': ['PUT']})
+                       # conditions={'method': ['PUT']}
+                       )
 
     # create folder
     dispatcher.connect(name='',
